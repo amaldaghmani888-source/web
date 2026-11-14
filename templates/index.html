@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="{{ 'ar' if rtl else 'fr' }}" dir="{{ 'rtl' if rtl else 'ltr' }}">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ t.app }}</title><link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
+<style>
+.auth-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:22px;margin-top:28px}
+.auth-card,.panel{background:white;border:1px solid #e7e9ef;border-radius:18px;padding:24px;box-shadow:0 8px 24px #1725540a}
+.auth-card h2{margin-top:0}.field{display:block;margin:13px 0;font-weight:600}.field input,.field textarea,.field select{display:block;width:100%;box-sizing:border-box;padding:12px;border:1px solid #d8dce5;border-radius:10px;margin-top:6px;font:inherit}
+.primary{background:#176b60;color:white;border:0;padding:12px 18px;border-radius:10px;font:inherit;cursor:pointer}.muted{color:#687386}.topbar{display:flex;justify-content:space-between;align-items:center;padding:18px 5%;background:#fff}
+.content-wrap{max-width:1100px;margin:32px auto;padding:0 18px}.hero{margin-bottom:24px}.panel{margin:18px 0}.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:14px}.stat{background:#fff;border:1px solid #e7e9ef;padding:18px;border-radius:14px}.stat strong{display:block;font-size:30px;margin:8px 0;color:#176b60}
+.chart-row{display:grid;grid-template-columns:170px 1fr 42px;gap:12px;align-items:center;margin:14px 0}.bar-bg{height:13px;background:#edf0f4;border-radius:20px;overflow:hidden}.bar{height:100%;background:#278c7c;border-radius:20px}
+.record{padding:15px 0;border-bottom:1px solid #eee}.pill{background:#eef6f4;padding:5px 10px;border-radius:20px}.nav-pills{display:flex;gap:10px;flex-wrap:wrap}.nav-pills a{padding:10px 14px;background:#edf5f3;border-radius:10px;text-decoration:none;color:#155c52}
+.flash{background:#fff4d9;padding:12px 16px;border-radius:10px;margin:12px 0}.actions{margin-top:15px}
+@media(max-width:600px){.chart-row{grid-template-columns:105px 1fr 28px;font-size:13px}}
+</style></head>
+<body>
+<header class="topbar"><a class="brand" href="{{ url_for('index') }}"><span class="logo">♡</span><span><b>{{ t.app }}</b><small>{{ t.subtitle }}</small></span></a>
+<div class="top-actions"><span>{{ t.language }}</span><a class="lang" href="{{ url_for('language',lang='fr') }}">FR</a><a class="lang" href="{{ url_for('language',lang='ar') }}">العربية</a></div></header>
+<main class="content-wrap">
+{% with messages=get_flashed_messages() %}{% for message in messages %}<div class="flash">{{ message }}</div>{% endfor %}{% endwith %}
+{% if mode=='landing' %}
+<div class="landing-intro"><span class="eyebrow">ESPACE NUMÉRIQUE DE SANTÉ</span><h1>{{ t.welcome }}</h1><p>{{ t.intro }}</p></div>
+<div class="auth-grid">
+<section class="auth-card"><h2>♀ {{ t.woman }}</h2><p class="muted">Accès avec le numéro de la carte nationale (CIN), sans mot de passe.</p>
+<form method="post" action="{{ url_for('woman_login') }}"><label class="field">Code CIN<input name="cin" required autocomplete="off" placeholder="Ex. AB123456"></label><button class="primary" type="submit">{{ t.enter }}</button></form></section>
+<section class="auth-card"><h2>✚ {{ t.staff }}</h2><p class="muted">Connexion avec nomprenom@sante et mot de passe.</p>
+<form method="post" action="{{ url_for('staff_login') }}"><label class="field">Identifiant<input name="username" required placeholder="nomprenom@sante"></label><label class="field">Mot de passe<input name="password" type="password" required></label><button class="primary" type="submit">Se connecter</button></form></section>
+<section class="auth-card"><h2>Créer un compte professionnel</h2><form method="post" action="{{ url_for('staff_register') }}"><label class="field">Nom<input name="nom" required></label><label class="field">Prénom<input name="prenom" required></label><label class="field">Mot de passe (8 caractères minimum)<input name="password" type="password" minlength="8" required></label><button class="primary" type="submit">Créer mon compte</button></form></section>
+</div>
+{% elif mode=='woman' %}
+<div class="hero"><span class="eyebrow">ESPACE FEMME</span><h1>Bienvenue</h1><p>Code CIN : {{ user.cin }}</p></div>
+<div class="nav-pills"><a href="#appointments">Mes rendez-vous / مواعيدي</a><a href="#history">Historique / السجل</a><a href="{{ url_for('logout') }}">Déconnexion</a></div>
+<section class="panel" id="appointments"><h2>Mes rendez-vous · مواعيدي</h2>
+<form method="post" action="{{ url_for('appointment_add') }}" class="form-grid">
+<label class="field">Date du rendez-vous<input type="date" name="appointment_date" required></label>
+<label class="field">Motif / سبب الموعد<input name="reason" required></label>
+<label class="field">Établissement / المؤسسة<input name="facility"></label>
+<label class="field">Notes / ملاحظات<textarea name="notes"></textarea></label>
+<div class="wide actions"><button class="primary" type="submit">Ajouter un rendez-vous</button></div></form>
+{% if appointments %}{% for a in appointments %}<article class="record"><b>{{ a.appointment_date }} — {{ a.reason }}</b><p>{{ a.facility }} {{ a.notes }}</p><form method="post" action="{{ url_for('appointment_delete',appointment_id=a.id) }}"><button class="delete" type="submit">Supprimer</button></form></article>{% endfor %}{% else %}<p class="muted">Aucun rendez-vous enregistré.</p>{% endif %}
+</section>
+<section class="panel" id="history"><h2>Historique · السجل الصحي</h2>
+{% if records %}{% for r in records %}<article class="record"><b>{{ r.section }} — {{ r.created_at }}</b><p>{{ r.payload }}</p></article>{% endfor %}{% else %}<p class="muted">Aucun historique disponible pour le moment.</p>{% endif %}</section>
+{% elif mode=='staff' %}
+<div class="hero"><span class="eyebrow">ESPACE PROFESSIONNEL</span><h1>Tableau de bord — Indicateurs</h1><p>Bonjour {{ user.prenom }} {{ user.nom }} · {{ user.username }}</p></div>
+<div class="nav-pills"><a href="#indicators">Indicateurs</a><a href="#data">Saisir des données</a><a href="{{ url_for('logout') }}">Déconnexion</a></div>
+<section class="panel" id="indicators"><h2>Indicateurs clés</h2><div class="stats-grid">
+<div class="stat">Total des enregistrements<strong>{{ stats.total }}</strong></div><div class="stat">Vaccination<strong>{{ stats.vaccination }}</strong></div><div class="stat">Suivi grossesse<strong>{{ stats.grossesse }}</strong></div><div class="stat">Dépistage cancers<strong>{{ stats.cancers }}</strong></div><div class="stat">Consultations<strong>{{ stats.consultations }}</strong></div></div>
+<h3>Graphique des activités</h3>{% set maxval=[stats.vaccination,stats.grossesse,stats.cancers,stats.consultations,1]|max %}
+{% for label,val in [('Vaccination',stats.vaccination),('Grossesse',stats.grossesse),('Dépistage',stats.cancers),('Consultations',stats.consultations)] %}
+<div class="chart-row"><span>{{ label }}</span><div class="bar-bg"><div class="bar" style="width:{{ (val*100/maxval)|round|int }}%"></div></div><b>{{ val }}</b></div>{% endfor %}
+<p class="muted">Les graphiques représentent les enregistrements présents dans cette installation, et non des taux de couverture populationnelle.</p></section>
+<section class="panel" id="data"><h2>Saisie des données</h2><div class="module-grid">{% for key,s in sections.items() %}<details style="padding:12px;border-bottom:1px solid #eee"><summary>{{ s.ar if rtl else s.title }}</summary><form method="post" action="{{ url_for('add_record',section=key) }}" class="form-grid" style="margin-top:15px">
+<label class="field">CIN de la femme concernée<input name="patient_cin" required placeholder="Code CIN saisi par la femme"></label>
+{% for field,label,arabic,kind in s.fields %}<label class="field">{{ arabic if rtl else label }}{% if kind=='textarea' %}<textarea name="{{ field }}"></textarea>{% elif kind.startswith('select:') %}<select name="{{ field }}"><option value="">—</option>{% for opt in kind[7:].split(',') %}<option>{{ opt }}</option>{% endfor %}</select>{% else %}<input name="{{ field }}" type="{{ kind }}" {% if kind=='number' %}step="any"{% endif %}>{% endif %}</label>{% endfor %}<button class="primary" type="submit">Enregistrer</button></form></details>{% endfor %}</div></section>
+{% endif %}
+<footer style="margin:28px 0;color:#687386">Données confidentielles — Utilisez une base sécurisée avant tout usage médical réel.</footer>
+</main></body></html>
